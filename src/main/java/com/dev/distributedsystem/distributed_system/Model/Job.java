@@ -2,7 +2,6 @@ package com.dev.distributedsystem.distributed_system.Model;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
-import lombok.extern.java.Log;
 
 import java.time.Instant;
 
@@ -50,7 +49,7 @@ public class Job {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
-    protected Job() {
+    public Job() {
         // JPA only
     }
 }
