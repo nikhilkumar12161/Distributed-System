@@ -22,7 +22,7 @@ public class JobSchedulerService {
         this.jobRepository = jobRepository;
     }
 
-    @Scheduled(fixedDelay = 5000)
+    @Scheduled(fixedDelay = 1000)
     @Transactional
     public void ScheduleJobs() throws InterruptedException {
         List<String> nums = new ArrayList<>();
@@ -33,5 +33,17 @@ public class JobSchedulerService {
                 // enqueued
             }
         }
+    }
+
+    @Scheduled(fixedDelay = 1000)
+    @Transactional
+    public void work(){
+        int picked = jobRepository.pickJobForExecution();
+        if(picked == 0){
+            return;
+        }
+        Job job = jobRepository.findCurrentlyRunningJob().orElseThrow();
+        System.out.println(job.getPayload());
+        jobRepository.completeJob(job.getId());
     }
 }
