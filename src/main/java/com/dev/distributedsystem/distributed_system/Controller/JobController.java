@@ -4,66 +4,52 @@ import com.dev.distributedsystem.distributed_system.Controller.dto.CreateJobRequ
 import com.dev.distributedsystem.distributed_system.Model.Job;
 import com.dev.distributedsystem.distributed_system.Model.JobStatus;
 import com.dev.distributedsystem.distributed_system.Model.JobType;
-import com.dev.distributedsystem.distributed_system.Repositories.JobRepository;
-import io.micrometer.observation.ObservationPredicate;
+import com.dev.distributedsystem.distributed_system.Service.JobService;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 import org.slf4j.Logger;
 
 import java.util.*;
-import java.util.function.Predicate;
 
 @RestController
 @RequestMapping("/jobs")
 public class JobController {
-    private static Logger logger = LoggerFactory.getLogger(JobController.class);
+    private static final Logger logger = LoggerFactory.getLogger(JobController.class);
+    private final JobService jobService;
 
-    @Autowired
-    private JobRepository jobRepository;
+    public JobController(JobService jobService){
+        this.jobService = jobService;
+    }
 
-    @GetMapping("/")
-    public HashMap<String, String> helloWorld(){
-        logger.info("Hello workd  : {}","Nikhil");
+    @GetMapping("test-api")
+    public HashMap<String, String> helloWorld() {
+        logger.info("Hello world  : {}", "Nikhil");
         HashMap<String, String> map = new HashMap<>();
-        map.put("value","Hello world");
+        map.put("value", "Hello world");
         return map;
     }
 
     @PostMapping("/add-job")
-    public Job addJob(@RequestBody CreateJobRequest request){
-        Job job = new Job();
-        job.setId(UUID.randomUUID().toString());
-        job.setType(request.getType());
-        job.setStatus(JobStatus.CREATED);
-        job.setPayload(request.getPayload());
-        job.setRunAt(request.getRunAt());
-        job.setAttemptCount(0);
-        job.setMaxAttempts(request.getMaxAttempts());
-        job.setPriority(request.getPriority());
-        return jobRepository.save(job);
+    public Job addJob(@RequestBody(required = true) CreateJobRequest request) {
+        logger.info("Enter add Job Method");
+        return jobService.addJob(request);
     }
 
-    @GetMapping("/get-all-jobs")
-    public List<Job> getJobByStatus(){
-        return jobRepository.findAll();
+    @GetMapping
+    public List<Job> getJobs(
+            @RequestParam(required = false) JobType type,
+            @RequestParam(required = false) JobStatus status
+    ) {
+        logger.info("Entered getJobs method");
+        return jobService.getJobs(type,status);
     }
 
-    @GetMapping("/get-jobs-by-status")
-    public List<Job> getJobByStatus(@RequestParam JobStatus status){
-        return jobRepository.findJobsByStatus(status);
-    }
-
-    @GetMapping("/get-jobs-by-type")
-    public List<Job> getJobByType(@RequestParam JobType type){
-        return jobRepository.findJobsByType(type);
-    }
-
-    @DeleteMapping("/delete-all-jobs")
-    public List<Job> deleteAllJobs(){
-        jobRepository.deleteAll();
-        return new ArrayList<>();
-    }
+//    @GetMapping("delete")
+//    public List<Job> deleteJobs(
+//            @RequestParam(required = false) JobType type,
+//            @RequestParam(required = false) JobStatus status
+//    ) {
+//        logger.info("Entered getJobByStatus method");
+//        return jobService.getJobs(type,status);
+//    }
 }
