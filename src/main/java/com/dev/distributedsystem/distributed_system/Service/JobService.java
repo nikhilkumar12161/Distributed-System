@@ -5,11 +5,12 @@ import com.dev.distributedsystem.distributed_system.Model.Job;
 import com.dev.distributedsystem.distributed_system.Model.JobStatus;
 import com.dev.distributedsystem.distributed_system.Model.JobType;
 import com.dev.distributedsystem.distributed_system.Repositories.JobRepository;
+import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-import java.util.List;
-import java.util.UUID;
+
+import java.util.*;
 
 @Service
 public class JobService {
@@ -58,4 +59,12 @@ public class JobService {
 //            return jobRepository.deleteAll();
 //        }
 //    }
+   @Transactional
+   public HashMap<String, Object> updateStatus(JobStatus status) {
+       HashMap<String, Object> map = new HashMap<>();
+       Integer result = jobRepository.updateAllJobStatus(status);
+       map.put("Rows updated", result);
+       map.put("final result",jobRepository.findAll());
+       return map;
+   }
 }

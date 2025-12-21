@@ -52,4 +52,8 @@ public class JobController {
 //        logger.info("Entered getJobByStatus method");
 //        return jobService.getJobs(type,status);
 //    }
+    @GetMapping("update")
+    public HashMap<String, Object> updateAll(@RequestParam JobStatus status){
+        return jobService.updateStatus(status);
+    }
 }
