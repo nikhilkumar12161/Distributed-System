@@ -59,7 +59,6 @@ public class JobSchedulerService {
         try {
             // For now the purpose of the job is to print payload only
             System.out.println(job.getPayload());
-            int a = 12/0;
             jobRepository.completeJob(job.getId());
         }
         catch (Exception e){
