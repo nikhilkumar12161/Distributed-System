@@ -36,19 +36,31 @@ public interface JobRepository extends JpaRepository<Job, String> {
     //    Scheduler methods
     @Query("""
             SELECT J from Job J
-            WHERE J.status IN ('CREATED','FAILED')
+            WHERE J.status IN ('CREATED')
             AND J.runAt <= CURRENT TIMESTAMP
             AND (J.lockedUntil IS NULL OR J.lockedUntil <= CURRENT TIMESTAMP )
             ORDER BY J.priority , J.runAt ASC""")
     List<Job> findDueJobs();
 
-    @Modifying
     @Query("""
-            UPDATE Job J
-            SET J.status = 'SCHEDULED', J.updatedAt = current timestamp
-            where J.id = :jobId
-            and J.status IN ('CREATED','FAILED')
-            """)
+            SELECT J from Job J
+            WHERE J.status IN ('FAILED')
+            AND J.runAt <= CURRENT TIMESTAMP
+            AND (J.lockedUntil IS NULL OR J.lockedUntil <= CURRENT TIMESTAMP )
+            AND J.attemptCount < J.maxAttempts
+            ORDER BY J.priority , J.runAt ASC""")
+    List<Job> findFailedJobs();
+
+    @Modifying
+    @Query(value = """
+            UPDATE jobs
+            SET STATUS='SCHEDULED',
+            UPDATED_AT=NOW(),
+            RUN_AT=DATE_ADD(NOW(), INTERVAL 10*POW(2,ATTEMPT_COUNT) SECOND)
+            WHERE ID = :jobId
+            AND STATUS IN ('CREATED')
+            AND ATTEMPT_COUNT < MAX_ATTEMPTS
+            """, nativeQuery = true)
     int markScheduled(@Param("jobId") String id);
 
     @Modifying
@@ -63,6 +75,7 @@ public interface JobRepository extends JpaRepository<Job, String> {
                         where status = 'SCHEDULED' AND
                             ( locked_until is null or locked_until <= NOW())
                         order by priority, run_at desc limit 1
+                        FOR UPDATE SKIP LOCKED
                     )as tmp
                 )
             """, nativeQuery = true)
@@ -85,6 +98,33 @@ public interface JobRepository extends JpaRepository<Job, String> {
                 where status = 'RUNNING' and
                 id = :jobId
             """)
-    void completeJob(@Param("jobId") String id);
+    int completeJob(@Param("jobId") String id);
 
+    @Modifying
+    @Query(value = """
+                update jobs
+                    set
+                    status = case
+                            when attempt_count + 1 >= max_attempts then 'DLQ'
+                            else 'FAILED'
+                    end,
+                    updated_at = now(),
+                    locked_until = null,
+                    attempt_count = attempt_count + 1
+                where status = 'RUNNING' 
+                and id = :jobId
+            """, nativeQuery = true)
+    int markFailed(@Param("jobId") String id);
+
+    @Modifying
+    @Query(value = """
+            UPDATE jobs
+            SET STATUS='SCHEDULED',
+            UPDATED_AT=NOW(),
+            RUN_AT=DATE_ADD(NOW(), INTERVAL 10*POW(2,ATTEMPT_COUNT) SECOND)
+            WHERE ID = :jobId
+            AND STATUS IN ('FAILED')
+            AND ATTEMPT_COUNT < MAX_ATTEMPTS
+            """, nativeQuery = true)
+    int markFailedJobsScheduled(@Param("jobId") String id);
 }

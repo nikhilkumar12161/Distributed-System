@@ -37,13 +37,35 @@ public class JobSchedulerService {
 
     @Scheduled(fixedDelay = 1000)
     @Transactional
-    public void work(){
+    public void ScheduleFailedJobs() throws InterruptedException {
+        List<String> nums = new ArrayList<>();
+        List<Job> dueJobs = jobRepository.findFailedJobs();
+        for(Job job : dueJobs){
+            int id = jobRepository.markFailedJobsScheduled(job.getId());
+            if(id == 1){
+                // enqueued
+            }
+        }
+    }
+
+    @Scheduled(fixedDelay = 1000)
+    @Transactional
+    public void work() throws Exception {
         int picked = jobRepository.pickJobForExecution();
-        if(picked == 0){
+        if (picked == 0) {
             return;
         }
         Job job = jobRepository.findCurrentlyRunningJob().orElseThrow();
-        System.out.println(job.getPayload());
-        jobRepository.completeJob(job.getId());
+        try {
+            // For now the purpose of the job is to print payload only
+            System.out.println(job.getPayload());
+            int a = 12/0;
+            jobRepository.completeJob(job.getId());
+        }
+        catch (Exception e){
+            logger.info("Job Failed, Exception : {}",e.getMessage());
+            jobRepository.markFailed(job.getId());
+            return ;
+        }
     }
 }
